@@ -1,19 +1,26 @@
 #include "Phys_Environment.h"
 
-Phys_object::Phys_object(double x, double y, double m) :massvar{ m }, velocityvar{ 0.0,0.0 }, positionvar{ x,y } //for now, initialisation of objects with non-zero starting velocity is disallowed
+Phys_Object::Phys_Object(double x, double y, double m) :massvar{ m }, velocityvar{ 0.0,0.0 }, positionvar{ x,y } //for now, initialisation of objects with non-zero starting velocity is disallowed
 {
 
 }
 
-void Phys_object::update_position(unsigned int fps)
+void Phys_Object::update_position(unsigned int fps)
 {
 	int xdisp = positionvar.x + velocityvar.x/fps;
 	int ydisp = positionvar.y + velocityvar.y/fps;
 	positionvar = vectQ(positionvar.x + xdisp, positionvar.y + ydisp);
 }
 
+Phys_CB::Phys_CB() //protected constructor for abstract class
+{}
 
-physchange::physchange(Phys_object* ob, vectQ am, unsigned int t) :object{ ob }, amount{ am }, time{ t }
+test_cb::test_cb(Phys_Object* O, vectQ J) : joltamount{ J }
+{
+	obj = O; //not 100% sure why putting this in the initialiser list gives a 'not a static member' error
+}
+
+Phys_Event::Phys_Event(unsigned t, Phys_CB& CB) :delay{ t }, callback{ CB }
 {}
 
 
@@ -26,40 +33,30 @@ Phys_Environment::Phys_Environment(int x, int y, int w, int h, char* p) : Fl_Box
 void Phys_Environment::update_all() {
 
 	//this might be replaced with a 'find' function
-	auto itr = changelist.begin();
-	while (itr != changelist.end() && itr->time > framecount) {
-		++itr;
-	}
-	if (itr != changelist.end()) {
-		itr->object->velocity(itr->amount);
-		changelist.erase(itr);
+	auto itr = Eventlist.begin();
+	while (itr != Eventlist.end() && framecount >= itr->delay) {
+		itr->callback(); //perform the callback
+		itr = Eventlist.erase(itr); //erase the callback from the list and point to the next element
 	}
 
 
-	for (Phys_object* P : objects) {
+	for (Phys_Object* P : objects) {
 		P->update_position(fps);
 	}
 	++framecount;
 }
 
-void Phys_Environment::attach_change(physchange change) {
+void Phys_Environment::attach_Event(Phys_Event event) {
 	
 	//this might be replaced with a 'find' function
-	auto itr = changelist.begin();
-	while (itr != changelist.end() && itr->time < change.time){
+	auto itr = Eventlist.begin();
+	while (itr != Eventlist.end() && itr->delay < event.delay){
 	++itr;
 	}
-	changelist.insert(itr, change);
+	Eventlist.insert(itr, event);
 }
 
-void Phys_Environment::show_changes() { //to be removed
-	std::cout << changelist.size() << '\n';
-	for (physchange elem : changelist) {
-		std::cout << elem.time << '\n';
-	}
-}
-
-Phys_Button::Phys_Button(int x, int y, int w, int h, char* p, double m) : Fl_Button(x, y, w, h, p), Phys_object(x, y, m)
+Phys_Button::Phys_Button(int x, int y, int w, int h, char* p, double m) : Fl_Button(x, y, w, h, p), Phys_Object(x, y, m)
 {
 
 }

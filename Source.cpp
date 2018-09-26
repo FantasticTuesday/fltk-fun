@@ -35,12 +35,15 @@ int main() {
 		button2 -> velocity(vectQ(30.0,10.0));
 		world->attach(button2);
 
-		world->attach_change(physchange(button1, vectQ(10.0,10.0),100));
-		world->attach_change(physchange(button1, vectQ(-5.0, -1.0), 300));
-		world->attach_change(physchange(button1, vectQ(0.0, 0.0), 150));
-		world->attach_change(physchange(button1, vectQ(0.0, 10.0), 50));
-		
-		world->show_changes();
+		test_cb trycb1(button1, vectQ(-10.0, -20.0));
+		test_cb trycb2(button1, vectQ(0.0, -20.0));
+		test_cb trycb3(button2, vectQ(0.0, -20.0));
+		Phys_Event event1(20, trycb1);
+		Phys_Event event2(60, trycb2);
+		Phys_Event event3(60, trycb3);
+		world->attach_Event(event1);
+		world->attach_Event(event2);
+		world->attach_Event(event3);
 
 		void* W = static_cast<void*>(world);
 

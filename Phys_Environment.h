@@ -17,7 +17,7 @@
 
 
 
-class Phys_object {
+class Phys_Object {
 	double massvar;
 	vectQ velocityvar;
 	vectQ positionvar;
@@ -26,7 +26,7 @@ class Phys_object {
 	//bool paused;
 
 public:
-	Phys_object(double, double, double);
+	Phys_Object(double, double, double);
 
 	virtual void update_position(unsigned int);  //given the time elapsed for this frame, update_position physics position and velocity
 
@@ -39,34 +39,51 @@ public:
 
 };
 
-//crude first go at a delayed speed change request system (what is that even called in correct terms?)
-struct physchange { //terrible name
-	Phys_object* object; //passing as a pointer is going to cause problems
-	vectQ amount;
-	unsigned int time;
+class Phys_CB { //abstract callback class
+public:
+//	void callCB() { operator(); }
+	virtual void operator()() {
+		std:: cout << "virtual called\n";
+	}
+protected:
+	Phys_Object* obj{ nullptr };
+	Phys_CB();
+};
 
-	physchange(Phys_object*, vectQ, unsigned int);
+class test_cb : public Phys_CB {
+	vectQ joltamount;
+public:
+	test_cb(Phys_Object*, vectQ);
+	void operator()() {
+		obj->velocity(joltamount);
+		std::cout << "test_cb called\n";
+	}
+};
+
+struct Phys_Event {
+	unsigned delay;
+	Phys_CB& callback; //if not stored as a reference/pointer, this abstract class would be subject to slicing
+	Phys_Event(unsigned, Phys_CB&);
 };
 
 class Phys_Environment : public Fl_Box {
-	std::vector<Phys_object*> objects; //pointers to all physics objects owned by this environment
+	std::vector<Phys_Object*> objects; //pointers to all physics objects owned by this environment
 	unsigned int framecount; //frames elapsed
 	unsigned int fps; //fps of simulation
 	double timescale; //speed at which to run physics (default 1.0)
 
-	std::list<physchange> changelist; //this is likely not the right container to use, inserts need to be in time-ascending order and other containers may support that inately
+	std::list<Phys_Event> Eventlist; //this is likely not the right container to use, inserts need to be in time-ascending order and other containers may support that inately
 
 public:
 	Phys_Environment(int,int,int,int,char*);
 	unsigned int get_framecount() { return framecount; }
-	void attach(Phys_object* O) { objects.push_back(O); }
+	void attach(Phys_Object* O) { objects.push_back(O); }
 	void update_all(); //simulate physics for all objects for this frame
 
-	void attach_change(physchange);
-	void show_changes();
+	void attach_Event(Phys_Event);
 };
 
-class Phys_Button : public Fl_Button, public Phys_object {
+class Phys_Button : public Fl_Button, public Phys_Object {
 
 public:
 	Phys_Button(int,int,int,int,char*,double);
